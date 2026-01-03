@@ -2,20 +2,55 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>表示テスト</title>
+<title>空箱発注チェック</title>
+
+<style>
+  body { font-family: sans-serif; padding: 20px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+  .need { background: #ffe5e5; color: #b00000; font-weight: bold; }
+</style>
 </head>
 
 <body>
 
-<h1>表示テスト成功</h1>
+<h1>空箱発注チェック</h1>
 
-<p>ここが見えていれば HTML は読まれています。</p>
+<p>CSVを選択してください：</p>
+<input type="file" id="csvFile" accept=".csv">
 
-<input type="file">
+<table id="resultTable">
+<thead>
+<tr>
+  <th>商品名（C列）</th>
+  <th>東京残数</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
 
 <script>
-  alert("JavaScriptも動いています");
-</script>
+document.getElementById("csvFile").addEventListener("change", function(e) {
 
-</body>
-</html>
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function() {
+    const lines = reader.result.split(/\r?\n/);
+    const tbody = document.querySelector("#resultTable tbody");
+    tbody.innerHTML = "";
+
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i]) continue;
+
+      const c = lines[i].split(",");
+
+      const name = c[2] || "";
+      const tokyo =
+        (+c[8] || 0) - ((+c[5] || 0) + (+c[6] || 0) + (+c[7] || 0) + (+c[11] || 0) + (+c[12] || 0));
+
+      const tr = document.createElement("tr");
+      if (tok
+
