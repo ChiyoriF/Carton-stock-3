@@ -3,20 +3,67 @@
 <head>
 <meta charset="UTF-8">
 <title>空箱発注チェック</title>
+
 <style>
-  body { font-family: sans-serif; }
-  table { border-collapse: collapse; margin-top: 15px; }
-  th, td { border: 1px solid #999; padding: 6px 10px; }
-  th { background: #f0f0f0; }
-  .need { background: #ffe5e5; color: #b00000; font-weight: bold; }
+  body {
+    font-family: sans-serif;
+    background: #fafafa;
+    padding: 20px;
+  }
+
+  h1 {
+    margin-bottom: 10px;
+  }
+
+  /* CSV読み込みエリア */
+  .upload-area {
+    background: #fff;
+    border: 2px dashed #999;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .upload-area label {
+    font-weight: bold;
+  }
+
+  /* テーブル */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    background: #fff;
+  }
+
+  th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: center;
+  }
+
+  th {
+    background: #f0f0f0;
+  }
+
+  /* 空箱発注要 */
+  .need {
+    background: #ffe5e5;
+    color: #b00000;
+    font-weight: bold;
+  }
 </style>
 </head>
+
 <body>
 
-<h2>全商品一覧（空箱発注チェック）</h2>
+<h1>空箱発注チェック</h1>
 
-<input type="file" id="csvFile" accept=".csv">
+<!-- CSV読み込みエリア -->
+<div class="upload-area">
+  <label>CSVファイルを選択してください：</label><br><br>
+  <input type="file" id="csvFile" accept=".csv">
+</div>
 
+<!-- 結果表示 -->
 <table id="resultTable">
   <thead>
     <tr>
@@ -30,12 +77,13 @@
 
 <script>
 document.getElementById("csvFile").addEventListener("change", function(e) {
+
   const file = e.target.files[0];
   if (!file) return;
 
   const reader = new FileReader();
-  reader.onload = function() {
 
+  reader.onload = function() {
     const lines = reader.result.split(/\r?\n/);
     const tbody = document.querySelector("#resultTable tbody");
     tbody.innerHTML = "";
@@ -45,8 +93,8 @@ document.getElementById("csvFile").addEventListener("change", function(e) {
 
       const cols = lines[i].split(",");
 
-      const title = cols[0];                 // A列
-      const stock = Number(cols[8]) || 0;    // I列
+      const title = cols[0];              // A列
+      const stock = Number(cols[8]) || 0; // I列
 
       const sum =
         (Number(cols[5]) || 0) +   // F
