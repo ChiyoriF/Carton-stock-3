@@ -93,7 +93,7 @@ document.getElementById("csvFile").addEventListener("change", function(e) {
 
       const cols = lines[i].split(",");
 
-      const title = cols[0];              // A列
+      const title = cols[2];              // C列
       const stock = Number(cols[8]) || 0; // I列
 
       const sum =
