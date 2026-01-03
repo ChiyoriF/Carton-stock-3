@@ -2,38 +2,17 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>CSV確認</title>
+<title>最終確認</title>
 </head>
-
 <body>
 
-<h1>CSV読み込み確認</h1>
+<h1>最終確認ページ</h1>
 
-<input type="file" id="csvFile" accept=".csv">
-
-<pre id="log"></pre>
+<input type="file" id="csvFile">
 
 <script>
-document.getElementById("csvFile").addEventListener("change", function(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-
-  reader.onload = function() {
-    let text = reader.result;
-
-    // BOM除去
-    text = text.replace(/^\uFEFF/, "");
-
-    const lines = text.split(/\r?\n/);
-    document.getElementById("log").textContent =
-      "1行目:\n" + lines[0] + "\n\n2行目:\n" + lines[1];
-
-    console.log(lines);
-  };
-
-  reader.readAsText(file, "UTF-8");
+document.getElementById("csvFile").addEventListener("change", function () {
+  alert("ファイルが選択されました");
 });
 </script>
 
