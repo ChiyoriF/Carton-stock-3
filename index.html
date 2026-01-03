@@ -75,7 +75,7 @@ fileInput.addEventListener("change", e => {
 
   const reader = new FileReader();
   reader.onload = () => parseCSV(reader.result);
-  reader.readAsText(file, "UTF-8");
+  reader.readAsText(file, "Shift_JIS");
 });
 
 function parseCSV(text) {
