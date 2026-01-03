@@ -1,69 +1,174 @@
-// 数値取得（列がなくても0）
-const v = (row, name) => Number(row[idx[name]] || 0);
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>空箱発注チェック</title>
 
-// 商品名
-const name = r[idx["商品名"]] || "";
+<style>
+body { font-family: sans-serif; padding: 20px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+.need { background: #ffe5e5; color: #b00000; font-weight: bold; }
+</style>
+</head>
 
-// 東京
-const tokyo =
-  v(r,"東京空き段ボール") -
-  (
-    v(r,"東京入庫破損") +
-    v(r,"東京返品（JP都合）") +
-    v(r,"東京代替戻り（ダイワ都合）") +
-    v(r,"不具合品（東京倉庫）") +
-    v(r,"倉庫内破損（東京倉庫）")
-  );
+<body>
 
-// 大阪（新大阪）
-const osaka =
-  v(r,"新大阪空き段ボール") -
-  (
-    v(r,"新大阪入庫破損") +
-    v(r,"新大阪代替戻（返品）") +
-    v(r,"不具合品（新大阪倉庫）") +
-    v(r,"倉庫内破損（新大阪倉庫）")
-  );
+<h1>空箱発注チェック</h1>
+<input type="file" id="csvFile" accept=".csv">
 
-// 名古屋
-const nagoya =
-  v(r,"新名古屋空き段ボール") -
-  (
-    v(r,"新名古屋入庫破損") +
-    v(r,"新名古屋返品（JP都合）") +
-    v(r,"新名古屋代替戻り（名港都合）") +
-    v(r,"不具合品（新名古屋倉庫）") +
-    v(r,"倉庫内破損（新名古屋倉庫）")
-  );
+<table id="resultTable">
+<thead>
+<tr>
+  <th>商品名</th>
+  <th>東京</th>
+  <th>大阪</th>
+  <th>名古屋</th>
+  <th>福岡</th>
+  <th>龍ヶ崎</th>
+  <th>北海道</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
 
-// 福岡
-const fukuoka =
-  v(r,"福岡空き段ボール") -
-  (
-    v(r,"福岡入庫破損") +
-    v(r,"福岡返品（JP都合）") +
-    v(r,"福岡代替戻り（倉庫都合）") +
-    v(r,"不具合品（福岡倉庫）") +
-    v(r,"倉庫内破損（福岡倉庫）")
-  );
+<script>
+document.getElementById("csvFile").addEventListener("change", function(e) {
 
-// 龍ヶ崎
-const ryugasaki =
-  v(r,"龍ケ崎空き段ボール") -
-  (
-    v(r,"龍ケ崎入庫破損") +
-    v(r,"龍ケ崎返品") +
-    v(r,"不具合品（龍ケ崎倉庫）") +
-    v(r,"倉庫内破損（龍ケ崎倉庫）")
-  );
+  const file = e.target.files[0];
+  if (!file) return;
 
-// 北海道
-const hokkaido =
-  v(r,"北海道空き段ボール") -
-  (
-    v(r,"北海道入庫破損") +
-    v(r,"北海道返品（JP都合）") +
-    v(r,"北海道代替戻り（倉庫都合）") +
-    v(r,"不具合品（北海道倉庫）") +
-    v(r,"倉庫内破損（北海道倉庫）")
-  );
+  const reader = new FileReader();
+  reader.onload = function() {
+
+    // BOM除去
+    const text = reader.result.replace(/^\uFEFF/, "");
+    const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+
+    // ヘッダー取得
+    const headers = lines[0].split(",");
+    const idx = {};
+    headers.forEach((h, i) => idx[h.trim()] = i);
+
+    <!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>空箱発注チェック</title>
+
+<style>
+body { font-family: sans-serif; padding: 20px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+.need { background: #ffe5e5; color: #b00000; font-weight: bold; }
+</style>
+</head>
+
+<body>
+
+<h1>空箱発注チェック</h1>
+<input type="file" id="csvFile" accept=".csv">
+
+<table id="resultTable">
+<thead>
+<tr>
+  <th>商品名</th>
+  <th>東京</th>
+  <th>大阪</th>
+  <th>名古屋</th>
+  <th>福岡</th>
+  <th>龍ヶ崎</th>
+  <th>北海道</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<script>
+document.getElementById("csvFile").addEventListener("change", function(e) {
+
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function() {
+
+    // BOM除去
+    const text = reader.result.replace(/^\uFEFF/, "");
+    const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+
+    // ヘッダー取得
+    const headers = lines[0].split(",");
+    const idx = {};
+    headers.forEach((h, i) => idx[h.trim()] = i);
+
+    // 数値取得用関数
+    const v = (row, name) => Number(row[idx[name]] || 0);
+
+    const tbody = document.querySelector("#resultTable tbody");
+    tbody.innerHTML = "";
+
+    for (let i = 1; i < lines.length; i++) {
+      const r = lines[i].split(",");
+
+      const name = r[idx["商品名"]] || "";
+
+      const tokyo =
+        v(r,"東京空き段ボール") -
+        (v(r,"東京良品") + v(r,"東京入庫破損") + v(r,"東京返品（JP都合）") +
+         v(r,"不具合品（東京倉庫）") + v(r,"倉庫内破損（東京倉庫）"));
+
+      const osaka =
+        v(r,"新大阪空き段ボール") -
+        (v(r,"新大阪良品") + v(r,"新大阪入庫破損") +
+         v(r,"新大阪代替戻（返品）") + v(r,"不具合品（新大阪倉庫）"));
+
+      const nagoya =
+        v(r,"新名古屋空き段ボール") -
+        (v(r,"新名古屋良品") + v(r,"新名古屋入庫破損") +
+         v(r,"新名古屋代替戻り（名港都合）") + v(r,"不具合品（新名古屋倉庫）"));
+
+      const fukuoka =
+        v(r,"福岡空き段ボール") -
+        (v(r,"福岡良品") + v(r,"福岡入庫破損") +
+         v(r,"福岡代替戻り（倉庫都合）") + v(r,"不具合品（福岡倉庫）"));
+
+      const ryugasaki =
+        v(r,"龍ケ崎空き段ボール") -
+        (v(r,"龍ケ崎良品") + v(r,"龍ケ崎入庫破損") +
+         v(r,"龍ケ崎返品") + v(r,"不具合品（龍ケ崎倉庫）"));
+
+      const hokkaido =
+        v(r,"北海道空き段ボール") -
+        (v(r,"北海道良品") + v(r,"北海道入庫破損") +
+         v(r,"北海道代替戻り（倉庫都合）") + v(r,"不具合品（北海道倉庫）"));
+
+      const need =
+        tokyo <= 1 || osaka <= 1 || nagoya <= 1 ||
+        fukuoka <= 1 || ryugasaki <= 1 || hokkaido <= 1;
+
+      const tr = document.createElement("tr");
+      if (need) tr.classList.add("need");
+
+      tr.innerHTML = `
+        <td>${name}</td>
+        <td>${tokyo}</td>
+        <td>${osaka}</td>
+        <td>${nagoya}</td>
+        <td>${fukuoka}</td>
+        <td>${ryugasaki}</td>
+        <td>${hokkaido}</td>
+      `;
+      tbody.appendChild(tr);
+    }
+  };
+
+  reader.readAsText(file, "UTF-8");
+});
+</script>
+
+</body>
+</html>
+
+
+   
