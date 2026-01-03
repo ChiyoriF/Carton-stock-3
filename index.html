@@ -1,11 +1,79 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>テストページ</title>
+<meta charset="UTF-8">
+<title>空箱発注チェック</title>
+<style>
+  body { font-family: sans-serif; }
+  table { border-collapse: collapse; margin-top: 15px; }
+  th, td { border: 1px solid #999; padding: 6px 10px; }
+  th { background: #f0f0f0; }
+  .need { background: #ffe5e5; color: #b00000; font-weight: bold; }
+</style>
 </head>
 <body>
-  <h1>GitHub Pages テスト</h1>
-  <p>index.html が表示されています</p>
+
+<h2>全商品一覧（空箱発注チェック）</h2>
+
+<input type="file" id="csvFile" accept=".csv">
+
+<table id="resultTable">
+  <thead>
+    <tr>
+      <th>タイトル</th>
+      <th>残数</th>
+      <th>判定</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script>
+document.getElementById("csvFile").addEventListener("change", function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function() {
+
+    const lines = reader.result.split(/\r?\n/);
+    const tbody = document.querySelector("#resultTable tbody");
+    tbody.innerHTML = "";
+
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i]) continue;
+
+      const cols = lines[i].split(",");
+
+      const title = cols[0];                 // A列
+      const stock = Number(cols[8]) || 0;    // I列
+
+      const sum =
+        (Number(cols[5]) || 0) +   // F
+        (Number(cols[6]) || 0) +   // G
+        (Number(cols[7]) || 0) +   // H
+        (Number(cols[11]) || 0) +  // L
+        (Number(cols[12]) || 0);   // M
+
+      const result = stock - sum;
+      const isNeed = result <= 1;
+
+      const tr = document.createElement("tr");
+      if (isNeed) tr.classList.add("need");
+
+      tr.innerHTML = `
+        <td>${title}</td>
+        <td>${result}</td>
+        <td>${isNeed ? "空箱発注要" : ""}</td>
+      `;
+
+      tbody.appendChild(tr);
+    }
+  };
+
+  reader.readAsText(file, "UTF-8");
+});
+</script>
+
 </body>
 </html>
