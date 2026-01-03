@@ -91,4 +91,100 @@ function parseCSV(text) {
   // 値取得（列が無ければ0）
   const v = (row, name) => {
     const i = idx[norm(name)];
-    return i
+    return i === undefined ? 0 : Number(row[i] || 0);
+  };
+
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+
+    const name = r[idx[norm("商品名")]];
+    if (!name) continue;
+
+    // ===== 倉庫別計算 =====
+    const tokyo =
+      v(r,"東京空き段ボール") -
+      (
+        v(r,"東京入庫破損") +
+        v(r,"東京返品（JP都合）") +
+        v(r,"東京代替戻り（ダイワ都合）") +
+        v(r,"不具合品（東京倉庫）") +
+        v(r,"倉庫内破損（東京倉庫）")
+      );
+
+    const osaka =
+      v(r,"新大阪空き段ボール") -
+      (
+        v(r,"新大阪入庫破損") +
+        v(r,"新大阪代替戻（返品）") +
+        v(r,"不具合品（新大阪倉庫）") +
+        v(r,"倉庫内破損（新大阪倉庫）")
+      );
+
+    const nagoya =
+      v(r,"新名古屋空き段ボール") -
+      (
+        v(r,"新名古屋入庫破損") +
+        v(r,"新名古屋返品（JP都合）") +
+        v(r,"新名古屋代替戻り（名港都合）") +
+        v(r,"不具合品（新名古屋倉庫）") +
+        v(r,"倉庫内破損（新名古屋倉庫）")
+      );
+
+    const fukuoka =
+      v(r,"福岡空き段ボール") -
+      (
+        v(r,"福岡入庫破損") +
+        v(r,"福岡返品（JP都合）") +
+        v(r,"福岡代替戻り（倉庫都合）") +
+        v(r,"不具合品（福岡倉庫）") +
+        v(r,"倉庫内破損（福岡倉庫）")
+      );
+
+    const ryugasaki =
+      v(r,"龍ケ崎空き段ボール") -
+      (
+        v(r,"龍ケ崎入庫破損") +
+        v(r,"龍ケ崎返品") +
+        v(r,"不具合品（龍ケ崎倉庫）") +
+        v(r,"倉庫内破損（龍ケ崎倉庫）")
+      );
+
+    const hokkaido =
+      v(r,"北海道空き段ボール") -
+      (
+        v(r,"北海道入庫破損") +
+        v(r,"北海道返品（JP都合）") +
+        v(r,"北海道代替戻り（倉庫都合）") +
+        v(r,"不具合品（北海道倉庫）") +
+        v(r,"倉庫内破損（北海道倉庫）")
+      );
+
+    // 発注必要数計算
+    const cell = val => {
+      const shortage = Math.max(0, 2 - val);
+      let cls = "";
+      if (val <= 0) cls = "need-red";
+      else if (val === 1) cls = "need-orange";
+      return `<td class="${cls}">${val}${shortage > 0 ? ` (${shortage})` : ""}</td>`;
+    };
+
+    // 1つでも発注要なら表示
+    if ([tokyo, osaka, nagoya, fukuoka, ryugasaki, hokkaido].some(v => v <= 1)) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${name}</td>
+        ${cell(tokyo)}
+        ${cell(osaka)}
+        ${cell(nagoya)}
+        ${cell(fukuoka)}
+        ${cell(ryugasaki)}
+        ${cell(hokkaido)}
+      `;
+      tbody.appendChild(tr);
+    }
+  }
+}
+</script>
+
+</body>
+</html>
