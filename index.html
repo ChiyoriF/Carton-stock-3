@@ -16,40 +16,19 @@ document.getElementById("csvFile").addEventListener("change", function(e) {
 
       const c = lines[i].split(",");
 
-      const name = c[2]; // C列 商品名
+      const name = c[2] || "";
 
-      // --- 各倉庫計算 ---
-      const tokyo   = (c[8]  || 0) - ((+c[5])  + (+c[6])  + (+c[7])  + (+c[11]) + (+c[12]));
-      const osaka   = (c[18] || 0) - ((+c[15]) + (+c[17]) + (+c[20]) + (+c[21]));
-      const nagoya  = (c[27] || 0) - ((+c[24]) + (+c[25]) + (+c[28]) + (+c[29]));
-      const fukuoka = (c[35] || 0) - ((+c[32]) + (+c[33]) + (+c[36]) + (+c[37]));
-      const ryugasaki = (c[42] || 0) - ((+c[40]) + (+c[41]) + (+c[43]) + (+c[44]));
-      const hokkaido = (c[50] || 0) - ((+c[47]) + (+c[48]) + (+c[50]) + (+c[51]) + (+c[52]));
-      const other  = (c[58] || 0) - ((+c[55]) + (+c[56]) + (+c[57]) + (+c[59]) + (+c[60]));
+      const tokyo =
+        (+c[8] || 0) - ((+c[5] || 0) + (+c[6] || 0) + (+c[7] || 0) + (+c[11] || 0) + (+c[12] || 0));
 
-      const need =
-        tokyo <= 1 || osaka <= 1 || nagoya <= 1 ||
-        fukuoka <= 1 || ryugasaki <= 1 ||
-        hokkaido <= 1 || other <= 1;
+      const osaka =
+        (+c[18] || 0) - ((+c[15] || 0) + (+c[17] || 0) + (+c[20] || 0) + (+c[21] || 0));
 
-      const tr = document.createElement("tr");
-      if (need) tr.classList.add("need");
+      const nagoya =
+        (+c[27] || 0) - ((+c[24] || 0) + (+c[25] || 0) + (+c[28] || 0) + (+c[29] || 0));
 
-      tr.innerHTML = `
-        <td>${name}</td>
-        <td>${tokyo}</td>
-        <td>${osaka}</td>
-        <td>${nagoya}</td>
-        <td>${fukuoka}</td>
-        <td>${ryugasaki}</td>
-        <td>${hokkaido}</td>
-        <td>${other}</td>
-      `;
+      const fukuoka =
+        (+c[35] || 0) - ((+c[32] || 0) + (+c[33] || 0) + (+c[36] || 0) + (+c[37] || 0));
 
-      tbody.appendChild(tr);
-    }
-  };
-
-  reader.readAsText(file, "UTF-8");
-});
-</script>
+      const ryugasaki =
+        (+c[42] || 0) - ((+c[40] || 0) + (+c[41] ||
