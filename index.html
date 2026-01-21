@@ -37,6 +37,11 @@ th {
   color: #8a6d3b;
   font-weight: bold;
 }
+
+.gray {
+  background: #eee;
+  color: #999;
+}
 </style>
 </head>
 
@@ -65,7 +70,7 @@ th {
 const fileInput = document.getElementById("csvFile");
 const tbody = document.querySelector("#result tbody");
 
-// ヘッダー正規化（空白・全角対策）
+// ヘッダー正規化
 const norm = s => s.replace(/\s/g, "").trim();
 
 // CSV読み込み
@@ -84,11 +89,9 @@ function parseCSV(text) {
   const rows = text.trim().split(/\r?\n/).map(r => r.split(","));
   const headers = rows[0];
 
-  // ヘッダー → index
   const idx = {};
   headers.forEach((h, i) => idx[norm(h)] = i);
 
-  // 値取得（列が無ければ0）
   const v = (row, name) => {
     const i = idx[norm(name)];
     return i === undefined ? 0 : Number(row[i] || 0);
@@ -96,12 +99,21 @@ function parseCSV(text) {
 
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
-
     const name = r[idx[norm("商品名")]];
     if (!name) continue;
 
-    // ===== 倉庫別計算 =====
-    const tokyo =
+    // ===== 一番右の列（倉庫指定文字）=====
+    const areaText = r[r.length - 1] || "";
+
+    const useTokyo     = areaText.includes("東");
+    const useOsaka     = areaText.includes("大");
+    const useNagoya    = areaText.includes("名");
+    const useFukuoka   = areaText.includes("福");
+    const useHokkaido  = areaText.includes("北");
+    const useRyugasaki = areaText.includes("龍");
+
+    // ===== 倉庫別計算（有効な倉庫のみ）=====
+    const tokyo = useTokyo ? 
       v(r,"東京空き段ボール") -
       (
         v(r,"東京入庫破損") +
@@ -109,18 +121,18 @@ function parseCSV(text) {
         v(r,"東京代替戻り（ダイワ都合）") +
         v(r,"不具合品（東京倉庫）") +
         v(r,"倉庫内破損（東京倉庫）")
-      );
+      ) : null;
 
-    const osaka =
+    const osaka = useOsaka ?
       v(r,"新大阪空き段ボール") -
       (
         v(r,"新大阪入庫破損") +
         v(r,"新大阪代替戻（返品）") +
         v(r,"不具合品（新大阪倉庫）") +
         v(r,"倉庫内破損（新大阪倉庫）")
-      );
+      ) : null;
 
-    const nagoya =
+    const nagoya = useNagoya ?
       v(r,"新名古屋空き段ボール") -
       (
         v(r,"新名古屋入庫破損") +
@@ -128,9 +140,9 @@ function parseCSV(text) {
         v(r,"新名古屋代替戻り（名港都合）") +
         v(r,"不具合品（新名古屋倉庫）") +
         v(r,"倉庫内破損（新名古屋倉庫）")
-      );
+      ) : null;
 
-    const fukuoka =
+    const fukuoka = useFukuoka ?
       v(r,"福岡空き段ボール") -
       (
         v(r,"福岡入庫破損") +
@@ -138,18 +150,18 @@ function parseCSV(text) {
         v(r,"福岡代替戻り（倉庫都合）") +
         v(r,"不具合品（福岡倉庫）") +
         v(r,"倉庫内破損（福岡倉庫）")
-      );
+      ) : null;
 
-    const ryugasaki =
+    const ryugasaki = useRyugasaki ?
       v(r,"龍ケ崎空き段ボール") -
       (
         v(r,"龍ケ崎入庫破損") +
         v(r,"龍ケ崎返品") +
         v(r,"不具合品（龍ケ崎倉庫）") +
         v(r,"倉庫内破損（龍ケ崎倉庫）")
-      );
+      ) : null;
 
-    const hokkaido =
+    const hokkaido = useHokkaido ?
       v(r,"北海道空き段ボール") -
       (
         v(r,"北海道入庫破損") +
@@ -157,28 +169,34 @@ function parseCSV(text) {
         v(r,"北海道代替戻り（倉庫都合）") +
         v(r,"不具合品（北海道倉庫）") +
         v(r,"倉庫内破損（北海道倉庫）")
-      );
+      ) : null;
 
-    // 発注必要数計算
-    const cell = val => {
+    // ===== 表示用セル =====
+    const cell = (val, enabled) => {
+      if (!enabled) return `<td class="gray">―</td>`;
+
       const shortage = Math.max(0, 2 - val);
       let cls = "";
       if (val <= 0) cls = "need-red";
       else if (val === 1) cls = "need-orange";
+
       return `<td class="${cls}">${val}${shortage > 0 ? ` (${shortage})` : ""}</td>`;
     };
 
-    // 1つでも発注要なら表示
-    if ([tokyo, osaka, nagoya, fukuoka, ryugasaki, hokkaido].some(v => v <= 1)) {
+    // ===== 発注必要がある行だけ表示 =====
+    if (
+      [tokyo, osaka, nagoya, fukuoka, ryugasaki, hokkaido]
+        .some(v => v !== null && v <= 1)
+    ) {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${name}</td>
-        ${cell(tokyo)}
-        ${cell(osaka)}
-        ${cell(nagoya)}
-        ${cell(fukuoka)}
-        ${cell(ryugasaki)}
-        ${cell(hokkaido)}
+        ${cell(tokyo, useTokyo)}
+        ${cell(osaka, useOsaka)}
+        ${cell(nagoya, useNagoya)}
+        ${cell(fukuoka, useFukuoka)}
+        ${cell(ryugasaki, useRyugasaki)}
+        ${cell(hokkaido, useHokkaido)}
       `;
       tbody.appendChild(tr);
     }
