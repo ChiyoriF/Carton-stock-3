@@ -2,81 +2,45 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>空箱発注・要詰替チェック</title>
+<title>空箱・要詰替チェック</title>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  padding: 20px;
-}
+body { font-family: Arial; padding: 20px; }
+table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+th { background: #f0f0f0; }
 
-table {
-  border-collapse: collapse;
-  margin-top: 20px;
-  width: 100%;
-}
-
-th, td {
-  border: 1px solid #ccc;
-  padding: 6px 8px;
-  text-align: center;
-}
-
-th {
-  background: #f0f0f0;
-}
-
-.need-red {
-  background: #ffe5e5;
-  color: #b00000;
-  font-weight: bold;
-}
-
-.need-orange {
-  background: #fff3cd;
-  color: #8a6d3b;
-  font-weight: bold;
-}
-
-.need-blue {
-  background: #e6f2ff;
-  color: #004a99;
-  font-weight: bold;
-}
-
-.gray {
-  background: #eee;
-  color: #999;
-}
+.need-red { background: #ffe5e5; font-weight: bold; }
+.need-orange { background: #fff3cd; font-weight: bold; }
+.gray { background: #eee; color: #999; }
+.remark { background: #cce5ff; font-weight: bold; }
+.replace { background: #d4edda; font-weight: bold; }
 </style>
 </head>
 
 <body>
 
-<h2>空箱発注・要詰替チェック</h2>
+<h2>空箱 / 要詰替チェック</h2>
 
-<label>
-  良品判定数量：
-  <input type="number" id="goodLimit" value="5" min="0">
-</label>
-<br><br>
+良品判定数量：
+<input type="number" id="goodLimit" value="5" min="0">
 
-<input type="file" id="csvFile" accept=".csv,.tsv">
+<input type="file" id="csvFile">
 
 <table id="result">
-  <thead>
-    <tr>
-      <th>REMARK</th>
-      <th>商品名</th>
-      <th>東京</th>
-      <th>大阪</th>
-      <th>名古屋</th>
-      <th>福岡</th>
-      <th>龍ヶ崎</th>
-      <th>北海道</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
+<thead>
+<tr>
+  <th>REMARK</th>
+  <th>商品名</th>
+  <th>東京</th>
+  <th>大阪</th>
+  <th>名古屋</th>
+  <th>福岡</th>
+  <th>龍ヶ崎</th>
+  <th>北海道</th>
+</tr>
+</thead>
+<tbody></tbody>
 </table>
 
 <script>
@@ -84,7 +48,8 @@ const fileInput = document.getElementById("csvFile");
 const tbody = document.querySelector("#result tbody");
 const goodLimitInput = document.getElementById("goodLimit");
 
-const norm = s => s.replace(/\s/g, "").trim();
+const norm = s =>
+  (s || "").replace(/^\uFEFF/, "").replace(/[\s　]/g, "");
 
 fileInput.addEventListener("change", e => {
   const file = e.target.files[0];
@@ -98,48 +63,92 @@ fileInput.addEventListener("change", e => {
 function parseCSV(text) {
   tbody.innerHTML = "";
 
-  const goodLimit = Number(goodLimitInput.value);
-
-  // TSV（タブ区切り）対応
   const delimiter = text.includes("\t") ? "\t" : ",";
-const rows = text.trim().split(/\r?\n/).map(r => r.split(delimiter));
-
+  const rows = text.split(/\r?\n/).map(r => r.split(delimiter));
+  const headers = rows[0];
 
   const idx = {};
   headers.forEach((h, i) => idx[norm(h)] = i);
 
-  const v = (row, name) => {
-    const i = idx[norm(name)];
-    return i === undefined ? 0 : Number(row[i] || 0);
-  };
+  const v = (row, name) =>
+    Number(row[idx[norm(name)]] || 0);
+
+  const goodLimit = Number(goodLimitInput.value);
 
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
-    const name = r[idx[norm("商品名")]];
-    if (!name) continue;
+    if (!r.length) continue;
 
-    // 倉庫指定（担当情報列）
-    const areaText = (r[idx[norm("担当情報")]] || "").trim();
+    const name = r[idx[norm("商品名")]] || "（商品名不明）";
+    const area = (r[r.length - 1] || "").trim();
 
-    const areas = {
-      tokyo: areaText.includes("東"),
-      osaka: areaText.includes("大"),
-      nagoya: areaText.includes("名"),
-      fukuoka: areaText.includes("福"),
-      ryugasaki: areaText.includes("龍"),
-      hokkaido: areaText.includes("北")
-    };
+    const warehouses = [
+      {
+        key: "東京",
+        use: area.includes("東"),
+        good: v(r,"東京良品"),
+        box: v(r,"東京空き段ボール"),
+        bad: v(r,"東京入庫破損")+v(r,"東京返品（JP都合）")+v(r,"東京代替戻り（ダイワ都合）")+v(r,"不具合品（東京倉庫）")+v(r,"倉庫内破損（東京倉庫）")
+      },
+      {
+        key: "大阪",
+        use: area.includes("大"),
+        good: v(r,"新大阪良品"),
+        box: v(r,"新大阪空き段ボール"),
+        bad: v(r,"新大阪入庫破損")+v(r,"新大阪代替戻（返品）")+v(r,"不具合品（新大阪倉庫）")+v(r,"倉庫内破損（新大阪倉庫）")
+      },
+      {
+        key: "名古屋",
+        use: area.includes("名"),
+        good: v(r,"新名古屋良品"),
+        box: v(r,"新名古屋空き段ボール"),
+        bad: v(r,"新名古屋入庫破損")+v(r,"新名古屋返品（JP都合）")+v(r,"新名古屋代替戻り（名港都合）")+v(r,"不具合品（新名古屋倉庫）")+v(r,"倉庫内破損（新名古屋倉庫）")
+      },
+      {
+        key: "福岡",
+        use: area.includes("福"),
+        good: v(r,"福岡良品"),
+        box: v(r,"福岡空き段ボール"),
+        bad: v(r,"福岡入庫破損")+v(r,"福岡返品（JP都合）")+v(r,"福岡代替戻り（倉庫都合）")+v(r,"不具合品（福岡倉庫）")+v(r,"倉庫内破損（福岡倉庫）")
+      },
+      {
+        key: "龍ヶ崎",
+        use: area.includes("龍"),
+        good: v(r,"龍ケ崎良品"),
+        box: v(r,"龍ケ崎空き段ボール"),
+        bad: v(r,"龍ケ崎入庫破損")+v(r,"龍ケ崎返品")+v(r,"不具合品（龍ケ崎倉庫）")+v(r,"倉庫内破損（龍ケ崎倉庫）")
+      },
+      {
+        key: "北海道",
+        use: area.includes("北"),
+        good: v(r,"北海道良品"),
+        box: v(r,"北海道空き段ボール"),
+        bad: v(r,"北海道入庫破損")+v(r,"北海道返品（JP都合）")+v(r,"北海道代替戻り（倉庫都合）")+v(r,"不具合品（北海道倉庫）")+v(r,"倉庫内破損（北海道倉庫）")
+      }
+    ];
 
-    // 空き段ボール残数（発注判定用）
-    const stock = {
-      tokyo: areas.tokyo ? v(r,"東京空き段ボール") -
-        (v(r,"東京入庫破損")+v(r,"東京返品（JP都合）")+v(r,"東京代替戻り（ダイワ都合）")+v(r,"不具合品（東京倉庫）")+v(r,"倉庫内破損（東京倉庫）")) : null,
+    let remark = "";
+    const cells = warehouses.map(w => {
+      if (!w.use) return `<td class="gray">―</td>`;
 
-      osaka: areas.osaka ? v(r,"新大阪空き段ボール") -
-        (v(r,"新大阪入庫破損")+v(r,"新大阪代替戻（返品）")+v(r,"不具合品（新大阪倉庫）")+v(r,"倉庫内破損（新大阪倉庫）")) : null,
+      const replace = w.good <= goodLimit && w.box >= 1 && w.bad >= 1;
+      if (replace) remark = "要詰替";
 
-      nagoya: areas.nagoya ? v(r,"新名古屋空き段ボール") -
-        (v(r,"新名古屋入庫破損")+v(r,"新名古屋返品（JP都合）")+v(r,"新名古屋代替戻り（名港都合）")+v(r,"不具合品（新名古屋倉庫）")+v(r,"倉庫内破損（新名古屋倉庫）")) : null,
+      return `<td class="${replace ? "replace" : ""}">
+        良:${w.good}<br>箱:${w.box}
+      </td>`;
+    });
 
-      fukuoka: areas.fukuoka ? v(r,"福岡空き段ボール") -
-        (v(r,"福岡入庫破損")+v(r,"福岡返品（JP都合）")+v(r,"
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="remark">${remark}</td>
+      <td>${name}</td>
+      ${cells.join("")}
+    `;
+    tbody.appendChild(tr);
+  }
+}
+</script>
+
+</body>
+</html>
