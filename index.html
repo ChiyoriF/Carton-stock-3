@@ -101,8 +101,9 @@ function parseCSV(text) {
   const goodLimit = Number(goodLimitInput.value);
 
   // TSV（タブ区切り）対応
-  const rows = text.trim().split(/\r?\n/).map(r => r.split("\t"));
-  const headers = rows[0];
+  const delimiter = text.includes("\t") ? "\t" : ",";
+const rows = text.trim().split(/\r?\n/).map(r => r.split(delimiter));
+
 
   const idx = {};
   headers.forEach((h, i) => idx[norm(h)] = i);
