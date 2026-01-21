@@ -69,24 +69,36 @@ function parseCSV(text) {
   const goodLimit = Number(goodLimitInput.value);
 
   const warehouses = [
-    {key:"東京", good:"東京良品", box:"東京空き段ボール", bad:[
-      "東京入庫破損","東京返品（JP都合）","不具合品（東京倉庫）","倉庫内破損（東京倉庫）"
-    ]},
-    {key:"大阪", good:"新大阪良品", box:"新大阪空き段ボール", bad:[
-      "新大阪入庫破損","新大阪代替戻（返品）","不具合品（新大阪倉庫）","倉庫内破損（新大阪倉庫）"
-    ]},
-    {key:"名古屋", good:"新名古屋良品", box:"新名古屋空き段ボール", bad:[
-      "新名古屋入庫破損","新名古屋返品（JP都合）","不具合品（新名古屋倉庫）","倉庫内破損（新名古屋倉庫）"
-    ]},
-    {key:"福岡", good:"福岡良品", box:"福岡空き段ボール", bad:[
-      "福岡入庫破損","福岡返品（JP都合）","不具合品（福岡倉庫）","倉庫内破損（福岡倉庫）"
-    ]},
-    {key:"龍ヶ崎", good:"龍ケ崎良品", box:"龍ケ崎空き段ボール", bad:[
-      "龍ケ崎入庫破損","龍ケ崎返品","不具合品（龍ケ崎倉庫）","倉庫内破損（龍ケ崎倉庫）"
-    ]},
-    {key:"北海道", good:"北海道良品", box:"北海道空き段ボール", bad:[
-      "北海道入庫破損","北海道返品（JP都合）","不具合品（北海道倉庫）","倉庫内破損（北海道倉庫）"
-    ]}
+    {
+      key:"東京", mark:"東",
+      good:"東京良品", box:"東京空き段ボール",
+      bad:["東京入庫破損","東京返品（JP都合）","不具合品（東京倉庫）","倉庫内破損（東京倉庫）"]
+    },
+    {
+      key:"大阪", mark:"大",
+      good:"新大阪良品", box:"新大阪空き段ボール",
+      bad:["新大阪入庫破損","新大阪代替戻（返品）","不具合品（新大阪倉庫）","倉庫内破損（新大阪倉庫）"]
+    },
+    {
+      key:"名古屋", mark:"名",
+      good:"新名古屋良品", box:"新名古屋空き段ボール",
+      bad:["新名古屋入庫破損","新名古屋返品（JP都合）","不具合品（新名古屋倉庫）","倉庫内破損（新名古屋倉庫）"]
+    },
+    {
+      key:"福岡", mark:"福",
+      good:"福岡良品", box:"福岡空き段ボール",
+      bad:["福岡入庫破損","福岡返品（JP都合）","不具合品（福岡倉庫）","倉庫内破損（福岡倉庫）"]
+    },
+    {
+      key:"龍ヶ崎", mark:"龍",
+      good:"龍ケ崎良品", box:"龍ケ崎空き段ボール",
+      bad:["龍ケ崎入庫破損","龍ケ崎返品","不具合品（龍ケ崎倉庫）","倉庫内破損（龍ケ崎倉庫）"]
+    },
+    {
+      key:"北海道", mark:"北",
+      good:"北海道良品", box:"北海道空き段ボール",
+      bad:["北海道入庫破損","北海道返品（JP都合）","不具合品（北海道倉庫）","倉庫内破損（北海道倉庫）"]
+    }
   ];
 
   for (let i=1;i<rows.length;i++){
@@ -94,16 +106,26 @@ function parseCSV(text) {
     const name = r[idx[norm("商品名")]];
     if (!name) continue;
 
+    const areaText = (r[r.length-1] || "").trim();
+
     const goodAlerts = [];
     let needReplace = false;
 
     const cells = warehouses.map(w=>{
+      const enabled = areaText.includes(w.mark);
+      if (!enabled) return `<td class="gray">―</td>`;
+
       const good = v(r,w.good);
       const box  = v(r,w.box);
       const badSum = w.bad.reduce((s,b)=>s+v(r,b),0);
 
-      if (good <= goodLimit) goodAlerts.push(`${w.key}:${good}`);
-      if (box>=1 && badSum>=1) needReplace = true;
+      if (good <= goodLimit) {
+        goodAlerts.push(`${w.key}:${good}`);
+      }
+
+      if (box >= 1 && badSum >= 1) {
+        needReplace = true;
+      }
 
       return `<td>${good}</td>`;
     });
@@ -111,7 +133,9 @@ function parseCSV(text) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td class="good-alert">${goodAlerts.join(" / ")}</td>
-      <td class="${needReplace?"replace":""}">${needReplace?"要詰替":""}</td>
+      <td class="${needReplace ? "replace" : ""}">
+        ${needReplace ? "要詰替" : ""}
+      </td>
       <td>${name}</td>
       ${cells.join("")}
     `;
