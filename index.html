@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <title>空箱発注チェック</title>
 
+<!-- Excel出力用ライブラリ -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
 <style>
 body { font-family: Arial; padding: 20px; }
 table { border-collapse: collapse; margin-top: 20px; width: 100%; }
@@ -27,8 +30,8 @@ th { background: #f0f0f0; }
 
 <input type="file" id="csvFile" accept=".csv">
 
-<button id="exportAllCsv" style="margin-left:10px;">
-  空箱0商品 CSV出力（全倉庫）
+<button id="exportExcel" style="margin-left:10px;">
+  空箱0商品 Excel出力（全倉庫）
 </button>
 
 <table id="result">
@@ -53,11 +56,12 @@ th { background: #f0f0f0; }
 const fileInput = document.getElementById("csvFile");
 const tbody = document.querySelector("#result tbody");
 const goodLimitInput = document.getElementById("goodLimit");
-const exportBtn = document.getElementById("exportAllCsv");
+const exportBtn = document.getElementById("exportExcel");
 
 const norm = s => (s || "").replace(/[\s　]/g,"");
 
 let productBoxMap = {};
+let warehousesCache = [];
 
 fileInput.addEventListener("change", e => {
   const reader = new FileReader();
@@ -65,7 +69,7 @@ fileInput.addEventListener("change", e => {
   reader.readAsText(e.target.files[0], "Shift_JIS");
 });
 
-exportBtn.onclick = () => exportAllWarehouseCSV();
+exportBtn.onclick = () => exportExcel();
 
 function parseCSV(text) {
   tbody.innerHTML = "";
@@ -96,22 +100,21 @@ function parseCSV(text) {
       bad:["北海道入庫破損","北海道返品（JP都合）","不具合品（北海道倉庫）","倉庫内破損（北海道倉庫）"]}
   ];
 
+  warehousesCache = warehouses;
+
   for (let i=1;i<rows.length;i++){
     const r = rows[i];
     const name = r[idx[norm("商品名")]];
     if (!name) continue;
 
     const areaText = (r[r.length-1] || "").trim();
-
     const goodAlerts = [];
     let needReplace = false;
 
     if (!productBoxMap[name]) productBoxMap[name] = {};
 
     const cells = warehouses.map(w => {
-      const enabled = areaText.includes(w.mark);
-
-      if (!enabled) {
+      if (!areaText.includes(w.mark)) {
         return `<td class="gray">―</td><td class="gray">―</td>`;
       }
 
@@ -134,46 +137,40 @@ function parseCSV(text) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td class="good-alert">${goodAlerts.join(" / ")}</td>
-      <td class="${needReplace ? "replace" : ""}">${needReplace ? "空箱＋不良あり" : ""}</td>
+      <td class="${needReplace ? "replace" : ""}">
+        ${needReplace ? "空箱＋不良あり" : ""}
+      </td>
       <td>${name}</td>
       ${cells.join("")}
     `;
     tbody.appendChild(tr);
   }
-
-  window._warehouses = warehouses;
 }
 
-function exportAllWarehouseCSV() {
-  if (!window._warehouses) return;
-
-  const warehouses = window._warehouses;
-  let csv = ["商品名", ...warehouses.map(w=>w.key)].join(",") + "\n";
+function exportExcel() {
+  const data = [];
+  data.push(["商品名", ...warehousesCache.map(w => w.key)]);
 
   Object.entries(productBoxMap).forEach(([name, boxes]) => {
-    const values = warehouses.map(w =>
+    const row = [name];
+    const values = warehousesCache.map(w =>
       boxes[w.key] === undefined ? "" : boxes[w.key]
     );
 
     const hasZero = values.some(v => v === 0);
-    const allSafe = values.filter(v=>v!=="").every(v => v >= 2);
+    const allSafe = values.filter(v => v !== "").every(v => v >= 2);
 
     if (hasZero && !allSafe) {
-      csv += [name, ...values].join(",") + "\n";
+      row.push(...values);
+      data.push(row);
     }
   });
 
-  downloadCSV(csv, "空箱0商品一覧_全倉庫.csv");
-}
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "空箱0商品一覧");
 
-function downloadCSV(csv, filename) {
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  XLSX.writeFile(wb, "空箱0商品一覧_全倉庫.xlsx");
 }
 </script>
 
