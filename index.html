@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>空箱発注チェック</title>
+<title>空箱チェック</title>
 
 <style>
 body { font-family: Arial; padding: 20px; }
@@ -20,7 +20,7 @@ th { background: #f0f0f0; }
 
 <body>
 
-<h2>空箱発注チェック</h2>
+<h2>空箱チェック</h2>
 
 良品判定値：
 <input type="number" id="goodLimit" value="5" min="0">
@@ -30,15 +30,27 @@ th { background: #f0f0f0; }
 <table id="result">
 <thead>
 <tr>
-  <th>良品不足</th>
-  <th>要詰替</th>
+  <th>在庫少</th>
+  <th>空箱＋不良あり</th>
   <th>商品名</th>
-  <th>東京</th>
-  <th>大阪</th>
-  <th>名古屋</th>
-  <th>福岡</th>
-  <th>龍ヶ崎</th>
-  <th>北海道</th>
+
+  <th>東京良品（在管）</th>
+  <th>東京空箱</th>
+
+  <th>大阪良品（在管）</th>
+  <th>大阪空箱</th>
+
+  <th>名古屋良品（在管）</th>
+  <th>名古屋空箱</th>
+
+  <th>福岡良品（在管）</th>
+  <th>福岡空箱</th>
+
+  <th>龍ヶ崎良品（在管）</th>
+  <th>龍ヶ崎空箱</th>
+
+  <th>北海道良品（在管）</th>
+  <th>北海道空箱</th>
 </tr>
 </thead>
 <tbody></tbody>
@@ -119,12 +131,18 @@ function parseCSV(text) {
     const goodAlerts = [];
     let needReplace = false;
 
-    const cells = warehouses.map(w=>{
+    const cells = warehouses.map(w => {
       const enabled = areaText.includes(w.mark);
-      if (!enabled) return `<td class="gray">―</td>`;
 
-      const good = v(r,w.good);
-      const box  = v(r,w.box);
+      if (!enabled) {
+        return `
+          <td class="gray">―</td>
+          <td class="gray">―</td>
+        `;
+      }
+
+      const good = v(r, w.good);
+      const box  = v(r, w.box);
       const badSum = w.bad.reduce((s,b)=>s+v(r,b),0);
 
       if (good <= goodLimit) {
@@ -135,19 +153,21 @@ function parseCSV(text) {
         needReplace = true;
       }
 
-      // 空箱表示（以前の仕様）
-      let cls = "";
-      if (box <= 0) cls = "need-red";
-      else if (box === 1) cls = "need-orange";
+      let boxCls = "";
+      if (box <= 0) boxCls = "need-red";
+      else if (box === 1) boxCls = "need-orange";
 
-      return `<td class="${cls}">${box}</td>`;
+      return `
+        <td>${good}</td>
+        <td class="${boxCls}">${box}</td>
+      `;
     });
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td class="good-alert">${goodAlerts.join(" / ")}</td>
       <td class="${needReplace ? "replace" : ""}">
-        ${needReplace ? "要詰替" : ""}
+        ${needReplace ? "空箱＋不良あり" : ""}
       </td>
       <td>${name}</td>
       ${cells.join("")}
