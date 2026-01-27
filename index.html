@@ -15,10 +15,12 @@ th { background: #f0f0f0; }
 .sub { font-size: 0.5em; color: #666; }
 
 .gray { background: #eee; color: #999; }
+
 .need-red { background: #ffe5e5; font-weight: bold; }
 .need-orange { background: #fff3cd; font-weight: bold; }
 
-.smile-row { background-color: #e6f2ff; }
+.smile-row { background-color: #e6f2ff; }   /* 青：SMILE */
+.zakan-row { background-color: #fff9db; }   /* 黄：在管 */
 
 .diff-plus { background-color: #e6ffed; font-weight: bold; }
 .diff-minus { background-color: #ffecec; font-weight: bold; }
@@ -29,8 +31,13 @@ th { background: #f0f0f0; }
 
 <h2>在管システム × SMILE 在庫比較</h2>
 
-<input type="file" id="csvFile" accept=".csv">
-<input type="file" id="smileFile" accept=".csv" style="margin-left:10px;">
+<p>
+  在管CSV：
+  <input type="file" id="csvFile" accept=".csv">
+  &nbsp;&nbsp;
+  SMILE CSV：
+  <input type="file" id="smileFile" accept=".csv">
+</p>
 
 <table id="result">
 <thead>
@@ -78,52 +85,60 @@ const csvFile = document.getElementById("csvFile");
 const smileFile = document.getElementById("smileFile");
 const tbody = document.querySelector("#result tbody");
 
-const norm = s => (s || "").replace(/[\s　]/g,"");
+const norm = s => (s || "").replace(/[\s　]/g, "");
 
 let smileMap = {};
 
+/* ===== SMILE CSV（UTF-8） ===== */
 smileFile.addEventListener("change", e => {
-  const r = new FileReader();
-  r.onload = () => parseSmileCSV(r.result);
-  r.readAsText(e.target.files[0], "Shift_JIS");
-});
-
-csvFile.addEventListener("change", e => {
-  const r = new FileReader();
-  r.onload = () => parseMainCSV(r.result);
-  r.readAsText(e.target.files[0], "Shift_JIS");
+  const reader = new FileReader();
+  reader.onload = () => parseSmileCSV(reader.result);
+  reader.readAsText(e.target.files[0], "UTF-8");
 });
 
 function parseSmileCSV(text) {
   smileMap = {};
-  const rows = text.trim().split(/\r?\n/).map(r => r.split(","));
+
+  const delimiter = text.includes("\t") ? "\t" : ",";
+  const rows = text.trim().split(/\r?\n/).map(r => r.split(delimiter));
+
   const headers = rows[0];
   const idx = {};
-  headers.forEach((h,i)=>idx[norm(h)] = i);
+  headers.forEach((h, i) => idx[norm(h)] = i);
 
-  for (let i=1;i<rows.length;i++) {
+  for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
-    const name = r[idx["商品名"]];
+    const name = r[idx[norm("商品名")]];
     if (!name) continue;
 
     smileMap[name] = {
-      東京: Number(r[idx["東京倉庫"]]||0),
-      大阪: Number(r[idx["大阪倉庫"]]||0),
-      名古屋: Number(r[idx["名古屋名港"]]||0),
-      福岡: Number(r[idx["福岡倉庫"]]||0),
-      北海道: Number(r[idx["北海道倉庫"]]||0),
-      龍ヶ崎: Number(r[idx["龍ヶ崎倉庫"]]||0),
-      仙台: Number(r[idx["仙台倉庫"]]||0)
+      東京: Number(r[idx[norm("東京倉庫")]] || 0),
+      大阪: Number(r[idx[norm("大阪倉庫")]] || 0),
+      名古屋: Number(r[idx[norm("名古屋名港")]] || 0),
+      福岡: Number(r[idx[norm("福岡倉庫")]] || 0),
+      北海道: Number(r[idx[norm("北海道倉庫")]] || 0),
+      仙台: Number(r[idx[norm("仙台倉庫")]] || 0),
+      龍ヶ崎: Number(r[idx[norm("龍ヶ崎倉庫")]] || 0)
     };
   }
 }
 
+/* ===== 在管 CSV（Shift_JIS） ===== */
+csvFile.addEventListener("change", e => {
+  const reader = new FileReader();
+  reader.onload = () => parseMainCSV(reader.result);
+  reader.readAsText(e.target.files[0], "Shift_JIS");
+});
+
 function parseMainCSV(text) {
   tbody.innerHTML = "";
-  const rows = text.trim().split(/\r?\n/).map(r => r.split(","));
+
+  const delimiter = text.includes("\t") ? "\t" : ",";
+  const rows = text.trim().split(/\r?\n/).map(r => r.split(delimiter));
+
   const headers = rows[0];
   const idx = {};
-  headers.forEach((h,i)=>idx[norm(h)] = i);
+  headers.forEach((h, i) => idx[norm(h)] = i);
 
   const warehouses = [
     { key:"東京", good:"東京良品", box:"東京空き段ボール" },
@@ -134,19 +149,22 @@ function parseMainCSV(text) {
     { key:"龍ヶ崎", good:"龍ケ崎良品", box:"龍ケ崎空き段ボール" }
   ];
 
-  for (let i=1;i<rows.length;i++) {
+  for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
-    const name = r[idx["商品名"]];
+    const name = r[idx[norm("商品名")]];
     if (!name) continue;
 
     let hasSmile = false;
+    let hasZakan = false;
     let cells = "";
 
     warehouses.forEach(w => {
-      const good = Number(r[idx[norm(w.good)]]||0);
-      const box  = Number(r[idx[norm(w.box)]]||0);
-      const smile = smileMap[name]?.[w.key];
+      const good = Number(r[idx[norm(w.good)]] || 0);
+      const box  = Number(r[idx[norm(w.box)]] || 0);
 
+      if (good !== 0 || box !== 0) hasZakan = true;
+
+      const smile = smileMap[name]?.[w.key];
       if (smile !== undefined) hasSmile = true;
 
       let diff = "", diffCls = "";
@@ -165,10 +183,18 @@ function parseMainCSV(text) {
       `;
     });
 
-    cells += `<td>${smileMap[name]?.仙台 ?? "―"}</td>`;
+    const sendaiSmile = smileMap[name]?.仙台;
+    if (sendaiSmile !== undefined) hasSmile = true;
+
+    cells += `<td>${sendaiSmile !== undefined ? sendaiSmile : "―"}</td>`;
 
     const tr = document.createElement("tr");
-    if (hasSmile) tr.classList.add("smile-row");
+    if (hasSmile) {
+      tr.classList.add("smile-row");
+    } else if (hasZakan) {
+      tr.classList.add("zakan-row");
+    }
+
     tr.innerHTML = `<td>${name}</td>${cells}`;
     tbody.appendChild(tr);
   }
